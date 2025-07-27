@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { HomeIcon, TableCellsIcon, ChartBarIcon, ArrowUpTrayIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../context/AuthContext.js';
 
 const navGroups = [
   {
@@ -23,13 +24,14 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const navigate = useNavigate();
-  const isLoggedIn = Boolean(localStorage.getItem('dobara_token'));
+  const { isAuthenticated, logout } = useAuth();
+  
   const handleLogout = () => {
     setShowLogout(true);
   };
+  
   const confirmLogout = () => {
-    localStorage.removeItem('dobara_token');
-    sessionStorage.removeItem('dobara_token');
+    logout();
     setShowLogout(false);
     navigate('/login');
   };
@@ -70,7 +72,7 @@ export default function Sidebar() {
             <UserIcon className="w-6 h-6" />
             <span className={`transition-all duration-300 ${collapsed ? 'hidden' : 'block'}`}>Profile</span>
           </NavLink>
-          {!collapsed && isLoggedIn && (
+          {!collapsed && isAuthenticated && (
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white font-medium transition"

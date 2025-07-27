@@ -3,11 +3,12 @@ import api from '../api';
 import StatsCard from '../components/StatsCard';
 import { motion } from 'framer-motion';
 import { UserGroupIcon, CurrencyRupeeIcon, BuildingOffice2Icon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../context/AuthContext.js';
 
 export default function Dashboard() {
   const [summary, setSummary] = useState({ totalOrders: 0, totalRevenue: 0, topCities: [], repeatCustomers: [] });
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchData() {
@@ -34,25 +35,6 @@ export default function Dashboard() {
       setLoading(false);
     }
     fetchData();
-
-    // Fetch user info for welcome message
-    const token = localStorage.getItem('dobara_token') || sessionStorage.getItem('dobara_token');
-    if (token) {
-      api.get('/auth/me')
-        .then(res => setUser(res.data))
-        .catch(err => console.error('Failed to fetch user:', err));
-    }
-    // Listen for profile updates
-    const handler = () => {
-      const token = localStorage.getItem('dobara_token') || sessionStorage.getItem('dobara_token');
-      if (token) {
-        api.get('/auth/me')
-          .then(res => setUser(res.data))
-          .catch(err => console.error('Failed to fetch user:', err));
-      }
-    };
-    window.addEventListener('profile-updated', handler);
-    return () => window.removeEventListener('profile-updated', handler);
   }, []);
 
   return (

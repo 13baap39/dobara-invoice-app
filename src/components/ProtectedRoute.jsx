@@ -1,8 +1,22 @@
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.js';
 
 export default function ProtectedRoute({ children }) {
-  // Check both localStorage and sessionStorage
-  const token = localStorage.getItem('dobara_token') || sessionStorage.getItem('dobara_token');
-  if (!token) return <Navigate to="/login" replace />;
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
+  }
+  
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
   return children;
 }

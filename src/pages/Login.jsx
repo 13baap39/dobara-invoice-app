@@ -1,34 +1,23 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.js';
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const navigate = useNavigate();
+  const { login, error, isLoading, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(true);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/login`, { email, password });
-      if (remember) {
-        localStorage.setItem('dobara_token', res.data.token);
-      } else {
-        sessionStorage.setItem('dobara_token', res.data.token);
-        localStorage.removeItem('dobara_token');
-      }
-      if (onLogin) onLogin();
+    clearError(); // Clear any previous errors
+    
+    const result = await login(email, password, remember);
+    
+    if (result.success) {
       navigate('/'); // Redirect to dashboard after login
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -76,9 +65,9 @@ export default function Login({ onLogin }) {
         <button
           type="submit"
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded transition"
-          disabled={loading}
+          disabled={isLoading}
         >
-          {loading ? 'Logging in...' : 'Login'}
+          {isLoading ? 'Logging in...' : 'Login'}
         </button>
         <div className="mt-4 text-center text-gray-400 text-sm">
           Don't have an account?{' '}

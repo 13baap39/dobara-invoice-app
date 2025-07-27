@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext.js';
 import api from '../api';
 
 export default function Profile() {
-  const [profile, setProfile] = useState(null);
+  const { user: profile, updateUser, refreshUser, logout } = useAuth();
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ fullName: '', email: '', mobile: '', shopName: '' });
   const [profilePic, setProfilePic] = useState(null);
@@ -18,18 +19,17 @@ export default function Profile() {
   const [showPicDelete, setShowPicDelete] = useState(false);
 
   useEffect(() => {
-    api.get('/auth/me').then(res => {
-      setProfile(res.data);
+    if (profile) {
       setForm({
-        fullName: res.data.fullName || '',
-        email: res.data.email || '',
-        mobile: res.data.mobile || '',
-        shopName: res.data.shopName || ''
+        fullName: profile.fullName || '',
+        email: profile.email || '',
+        mobile: profile.mobile || '',
+        shopName: profile.shopName || ''
       });
       // If profilePicUrl is empty string or falsy, set preview to null
-      setPreview(res.data.profilePicUrl ? (res.data.profilePicUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL}${res.data.profilePicUrl}` : res.data.profilePicUrl) : null);
-    });
-  }, []);
+      setPreview(profile.profilePicUrl ? (profile.profilePicUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL}${profile.profilePicUrl}` : profile.profilePicUrl) : null);
+    }
+  }, [profile]);
 
   const handleChange = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -82,21 +82,25 @@ export default function Profile() {
         const uploadRes = await api.post('/auth/profile-pic', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         profilePicUrl = uploadRes.data.url;
       }
-      await api.put('/auth/me', { ...form, profilePicUrl });
-      setSuccess('Profile updated!');
-      setEdit(false);
-      setProfile({ ...profile, ...form, profilePicUrl });
-      setProfilePic(null);
-      setPreview(profilePicUrl
-        ? (profilePicUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL}${profilePicUrl}` : profilePicUrl)
-        : null);
-      // If deleted, ensure local state is also cleared
-      if (!profilePicUrl) {
-        setProfile(prev => ({ ...prev, profilePicUrl: '' }));
-        setPreview(null);
+      
+      // Use the updateUser function from AuthContext
+      const updateData = { ...form, profilePicUrl };
+      const result = await updateUser(updateData);
+      
+      if (result.success) {
+        setSuccess('Profile updated!');
+        setEdit(false);
+        setProfilePic(null);
+        setPreview(profilePicUrl
+          ? (profilePicUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL}${profilePicUrl}` : profilePicUrl)
+          : null);
+        // If deleted, ensure local state is also cleared
+        if (!profilePicUrl) {
+          setPreview(null);
+        }
+      } else {
+        setError(result.error || 'Update failed');
       }
-      // Dispatch a custom event to notify header to refresh user info
-      window.dispatchEvent(new Event('profile-updated'));
     } catch (err) {
       setError('Update failed');
     } finally {
@@ -111,7 +115,6 @@ export default function Profile() {
     setPreview('/default-avatar.svg');
     setProfilePic(null);
     setShowPicDelete(false);
-    setProfile(prev => ({ ...prev, profilePicUrl: '' }));
   };
 
   const handleDelete = async () => {
@@ -124,7 +127,7 @@ export default function Profile() {
     setError('');
     try {
       await api.delete('/auth/me', { data: { password: confirmPassword } });
-      localStorage.removeItem('dobara_token');
+      logout(); // Use logout from AuthContext
       window.location.href = '/login';
     } catch (err) {
       setError('Account deletion failed. Password may be incorrect.');

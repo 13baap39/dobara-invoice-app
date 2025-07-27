@@ -1,33 +1,31 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.js';
 
-export default function Signup({ onSignup }) {
+export default function Signup() {
   const navigate = useNavigate();
+  const { signup, error, isLoading, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [shopName, setShopName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/signup`, {
-        email, password, fullName, mobile, shopName
-      });
-      localStorage.setItem('dobara_token', res.data.token);
-      if (onSignup) onSignup();
+    clearError(); // Clear any previous errors
+    
+    const result = await signup({
+      email, 
+      password, 
+      fullName, 
+      mobile, 
+      shopName
+    });
+    
+    if (result.success) {
       navigate('/'); // Redirect to dashboard after signup
-    } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -89,9 +87,9 @@ export default function Signup({ onSignup }) {
         <button
           type="submit"
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded transition"
-          disabled={loading}
+          disabled={isLoading}
         >
-          {loading ? 'Signing up...' : 'Sign Up'}
+          {isLoading ? 'Signing up...' : 'Sign Up'}
         </button>
         <div className="mt-4 text-center text-gray-400 text-sm">
           Already have an account?{' '}
