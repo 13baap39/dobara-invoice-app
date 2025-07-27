@@ -14,7 +14,7 @@ export default function Analytics() {
     async function fetchAnalytics() {
       setLoading(true);
       try {
-        const citiesRes = await api.get('http://localhost:5002/stats/cities');
+        const citiesRes = await api.get('/stats/cities');
         setCityStats(citiesRes.data || []);
         // Revenue trend for current month
         const today = new Date();
@@ -27,11 +27,11 @@ export default function Analytics() {
         });
         const trend = [];
         for (const day of days) {
-          const res = await api.get('http://localhost:5002/stats/summary', { params: { from: day, to: day } });
+          const res = await api.get('/stats/summary', { params: { from: day, to: day } });
           trend.push({ date: day, revenue: res.data.totalRevenue || 0 });
         }
         setRevenueTrend(trend);
-        const repeatRes = await api.get('http://localhost:5002/stats/repeat-customers');
+        const repeatRes = await api.get('/stats/repeat-customers');
         setRepeatCustomers(repeatRes.data || []);
       } catch (err) {
         setCityStats([]);

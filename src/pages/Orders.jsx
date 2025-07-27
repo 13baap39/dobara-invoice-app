@@ -13,7 +13,7 @@ export default function Orders() {
 
   useEffect(() => {
     async function fetchCities() {
-      const res = await api.get('http://localhost:5002/stats/cities');
+      const res = await api.get('/stats/cities');
       setCities(res.data.map(c => c._id));
     }
     fetchCities();
@@ -24,7 +24,7 @@ export default function Orders() {
       setLoading(true);
       try {
         const params = { search, city, from: dateRange.from, to: dateRange.to };
-        const res = await api.get('http://localhost:5002/orders', { params });
+        const res = await api.get('/orders', { params });
         setOrders(res.data || []);
       } catch (err) {
         setOrders([]);

@@ -19,9 +19,9 @@ export default function Dashboard() {
         const dd = String(today.getDate()).padStart(2, '0');
         const from = `${yyyy}-${mm}-${dd}`;
         const to = `${yyyy}-${mm}-${dd}`;
-        const summaryRes = await api.get('http://localhost:5002/stats/summary', { params: { from, to } });
-        const citiesRes = await api.get('http://localhost:5002/stats/cities');
-        const repeatRes = await api.get('http://localhost:5002/stats/repeat-customers');
+        const summaryRes = await api.get('/stats/summary', { params: { from, to } });
+        const citiesRes = await api.get('/stats/cities');
+        const repeatRes = await api.get('/stats/repeat-customers');
         setSummary({
           totalOrders: summaryRes.data.totalOrders || 0,
           totalRevenue: summaryRes.data.totalRevenue || 0,
@@ -38,21 +38,17 @@ export default function Dashboard() {
     // Fetch user info for welcome message
     const token = localStorage.getItem('dobara_token') || sessionStorage.getItem('dobara_token');
     if (token) {
-      fetch('http://localhost:5002/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => setUser(data));
+      api.get('/auth/me')
+        .then(res => setUser(res.data))
+        .catch(err => console.error('Failed to fetch user:', err));
     }
     // Listen for profile updates
     const handler = () => {
       const token = localStorage.getItem('dobara_token') || sessionStorage.getItem('dobara_token');
       if (token) {
-        fetch('http://localhost:5002/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(res => res.json())
-          .then(data => setUser(data));
+        api.get('/auth/me')
+          .then(res => setUser(res.data))
+          .catch(err => console.error('Failed to fetch user:', err));
       }
     };
     window.addEventListener('profile-updated', handler);

@@ -27,7 +27,7 @@ export default function Profile() {
         shopName: res.data.shopName || ''
       });
       // If profilePicUrl is empty string or falsy, set preview to null
-      setPreview(res.data.profilePicUrl ? (res.data.profilePicUrl.startsWith('/uploads') ? `http://localhost:5002${res.data.profilePicUrl}` : res.data.profilePicUrl) : null);
+      setPreview(res.data.profilePicUrl ? (res.data.profilePicUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL}${res.data.profilePicUrl}` : res.data.profilePicUrl) : null);
     });
   }, []);
 
@@ -88,7 +88,7 @@ export default function Profile() {
       setProfile({ ...profile, ...form, profilePicUrl });
       setProfilePic(null);
       setPreview(profilePicUrl
-        ? (profilePicUrl.startsWith('/uploads') ? `http://localhost:5002${profilePicUrl}` : profilePicUrl)
+        ? (profilePicUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL}${profilePicUrl}` : profilePicUrl)
         : null);
       // If deleted, ensure local state is also cleared
       if (!profilePicUrl) {
@@ -146,7 +146,7 @@ export default function Profile() {
                 ? preview
                 : profile && profile.profilePicUrl
                   ? (profile.profilePicUrl.startsWith('/uploads')
-                      ? `http://localhost:5002${profile.profilePicUrl}`
+                      ? `${import.meta.env.VITE_API_BASE_URL}${profile.profilePicUrl}`
                       : profile.profilePicUrl)
                   : '/default-avatar.svg'
             }

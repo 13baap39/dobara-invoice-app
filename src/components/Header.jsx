@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { UserCircleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import api from '../api.js';
 
 export default function Header() {
   const navigate = useNavigate();
@@ -10,11 +11,9 @@ export default function Header() {
     // Prefer localStorage, fallback to sessionStorage
     const token = localStorage.getItem('dobara_token') || sessionStorage.getItem('dobara_token');
     if (token) {
-      fetch('http://localhost:5002/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => setUser(data));
+      api.get('/auth/me')
+        .then(res => setUser(res.data))
+        .catch(err => console.error('Failed to fetch user:', err));
     }
   }, []);
 
@@ -23,11 +22,9 @@ export default function Header() {
     const handler = () => {
       const token = localStorage.getItem('dobara_token') || sessionStorage.getItem('dobara_token');
       if (token) {
-        fetch('http://localhost:5002/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(res => res.json())
-          .then(data => setUser(data));
+        api.get('/auth/me')
+          .then(res => setUser(res.data))
+          .catch(err => console.error('Failed to fetch user:', err));
       }
     };
     window.addEventListener('profile-updated', handler);
@@ -55,7 +52,7 @@ export default function Header() {
         </div>
         {user && user.profilePicUrl ? (
           <img
-            src={user.profilePicUrl.startsWith('/uploads') ? `http://localhost:5002${user.profilePicUrl}` : user.profilePicUrl}
+            src={user.profilePicUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_BASE_URL}${user.profilePicUrl}` : user.profilePicUrl}
             alt="Profile"
             className="w-8 h-8 rounded-full object-cover border-2 border-indigo-500 bg-gray-800"
           />

@@ -16,7 +16,7 @@ export default function Login({ onLogin }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('http://localhost:5002/auth/login', { email, password });
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/login`, { email, password });
       if (remember) {
         localStorage.setItem('dobara_token', res.data.token);
       } else {

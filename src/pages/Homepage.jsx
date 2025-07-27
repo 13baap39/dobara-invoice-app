@@ -27,9 +27,9 @@ function Homepage() {
         const dd = String(today.getDate()).padStart(2, '0');
         const from = `${yyyy}-${mm}-${dd}`;
         const to = `${yyyy}-${mm}-${dd}`;
-        const summaryRes = await api.get('http://localhost:5002/stats/summary', { params: { from, to } });
-        const citiesRes = await api.get('http://localhost:5002/stats/cities');
-        const repeatRes = await api.get('http://localhost:5002/stats/repeat-customers');
+        const summaryRes = await api.get('/stats/summary', { params: { from, to } });
+        const citiesRes = await api.get('/stats/cities');
+        const repeatRes = await api.get('/stats/repeat-customers');
         setSummary({
           totalOrders: summaryRes.data.totalOrders || 0,
           totalRevenue: summaryRes.data.totalRevenue || 0,
