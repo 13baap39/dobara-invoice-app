@@ -7,17 +7,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const envPath = path.join(__dirname, '..', '.env');
 
-console.log('🔧 Loading environment from:', envPath);
 const result = dotenv.config({ path: envPath });
 
 if (result.error) {
   console.error('❌ Error loading .env:', result.error);
-} else {
-  console.log('✅ .env loaded successfully');
+  process.exit(1);
 }
-
-console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
-console.log('🔑 JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
 
 // Ensure JWT_SECRET is set before starting the server
 if (!process.env.JWT_SECRET) {
@@ -39,10 +34,6 @@ import { parseBill } from './billParser.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// Create a test ObjectId for development
-  // Testing: Use a consistent test user ID for development
-  const testUserId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'); // Fixed test user ID
 
 // Serve uploads directory (outside project root)
 app.use('/uploads', express.static(path.resolve(__dirname, '../../uploads')));
@@ -71,11 +62,11 @@ app.get('/test-auth', authMiddleware, (req, res) => {
 });
 
 // POST /upload-bills: Upload and parse multiple PDFs
-// Temporarily remove auth for testing
-app.post('/upload-bills', upload.array('bills'), async (req, res) => {
+// Protected: Requires authentication
+app.post('/upload-bills', authMiddleware, upload.array('bills'), async (req, res) => {
   try {
     console.log('📤 Upload request received');
-    console.log('👤 User ID:', testUserId); // Using test ObjectId
+    console.log('👤 User ID:', req.user.id); // Using authenticated user ID
     console.log('📁 Files count:', req.files?.length || 0);
     
     const files = req.files;
@@ -94,7 +85,7 @@ app.post('/upload-bills', upload.array('bills'), async (req, res) => {
         for (const sku of skus) {
           // Check for duplicates using customer name + order ID + SKU (more stable than invoice ID)
           const duplicateQuery = {
-            userId: testUserId,
+            userId: req.user.id,
             orderId: sku.orderId,
             sku: sku.sku,
             name: sku.customerName
@@ -111,7 +102,7 @@ app.post('/upload-bills', upload.array('bills'), async (req, res) => {
           
           // Create new order record with proper field mapping
           await Order.create({ 
-            userId: testUserId, // Using test ObjectId
+            userId: req.user.id, // Using authenticated user ID
             name: sku.customerName,
             address: sku.customerAddress,
             city: sku.customerCity,
