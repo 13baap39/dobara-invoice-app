@@ -1,0 +1,120 @@
+import { getDocument } from 'pdfjs-dis      // Get customer name and address from "BILL TO / SHIP TO" section
+      // Format: Name - street, area, city, state, pincode
+      const billToMatch = section.match(/BILL TO \/ SHIP TO\s+([^-]+?)\s*-\s*([^,]+?),?\s*([^,]+?),?\s*([^,]+?),?\s*([^,]+?),?\s*(\d{6})/);
+      if (billToMatch) {
+        customerData.name = billToMatch[1].trim();
+        customerData.address = `${billToMatch[2].trim()}, ${billToMatch[3].trim()}`.replace(/,\s*,/, ',').trim();
+        customerData.city = billToMatch[4].trim();
+        customerData.state = billToMatch[5].trim();
+        customerData.pincode = billToMatch[6];
+      }ld/pdf.mjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const standardFontDataUrl = path.join(__dirname, '../node_modules/pdfjs-dist/standard_fonts/');
+
+// Only export the parseBill function, do not run any code at the top level
+export async function parseBill(buffer) {
+  // Convert buffer to Uint8Array for pdfjs
+  const uint8Array = new Uint8Array(buffer);
+  const pdf = await getDocument({
+    data: uint8Array,
+    standardFontDataUrl
+  }).promise;
+  
+  let textContent = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    textContent += content.items.map(item => item.str).join(' ');
+  }
+  
+  // Normalize whitespace
+  const normText = textContent.replace(/\s+/g, ' ').trim();
+  
+  const orders = [];
+  
+  // Split by "TAX INVOICE" to get individual invoices
+  const invoiceSections = normText.split('TAX INVOICE');
+  
+  for (let i = 1; i < invoiceSections.length; i++) { // Skip first empty split
+    const section = invoiceSections[i];
+    
+    try {
+      // Extract customer info
+      const customerData = {};
+      
+      // Get customer name and address from "BILL TO / SHIP TO" section
+      // Format: Name - address, city, state, pincode
+      const billToMatch = section.match(/BILL TO \/ SHIP TO\s+([^-]+?)\s*-\s*([^,]+?),?\s*([^,]+?),?\s*([^,]+?),?\s*(\d{6})/);
+      if (billToMatch) {
+        customerData.name = billToMatch[1].trim();
+        customerData.address = billToMatch[2].trim();
+        // Skip billToMatch[3] as it might be additional address info
+        // The actual city is usually in billToMatch[4], state in billToMatch[5]
+        customerData.city = billToMatch[4].trim();
+        customerData.state = billToMatch[5].trim();
+        customerData.pincode = billToMatch[6];
+      }
+      
+      // Extract Purchase Order No (this is the order ID)
+      const orderIdMatch = section.match(/Purchase Order No\.\s+(\d+)/);
+      if (orderIdMatch) {
+        customerData.orderId = orderIdMatch[1];
+      }
+      
+      // Extract Invoice No
+      const invoiceIdMatch = section.match(/Invoice No\.\s+([A-Za-z0-9]+)/);
+      if (invoiceIdMatch) {
+        customerData.invoiceId = invoiceIdMatch[1];
+      }
+      
+      // Extract Order Date
+      const orderDateMatch = section.match(/Order Date\s+(\d{2}\.\d{2}\.\d{4})/);
+      if (orderDateMatch) {
+        const [day, month, year] = orderDateMatch[1].split('.');
+        customerData.orderDate = new Date(`${year}-${month}-${day}`);
+      }
+      
+      // Extract SKU from Product Details section
+      const skuMatch = section.match(/Product Details\s+SKU\s+Size\s+Qty\s+Color\s+Order No\.\s+([^\s]+)/);
+      if (skuMatch) {
+        customerData.sku = skuMatch[1];
+      }
+      
+      // Extract color from Product Details
+      const colorMatch = section.match(/Order No\.\s+[^\s]+\s+[^\s]+\s+\d+\s+([^\s]+)/);
+      if (colorMatch) {
+        customerData.color = colorMatch[1];
+      }
+      
+      // Extract quantity from Product Details (looking for number before color)
+      const qtyMatch = section.match(/Free Size\s+(\d+)\s+(?:Purple|Red|Blue|Green|Yellow|Pink|Navy|Maroon|Black|White|Orange|Lime|Indigo|Teal|Magenta|Grey|Sky)/i);
+      if (qtyMatch) {
+        customerData.quantity = parseInt(qtyMatch[1]);
+      }
+      
+      // Extract total amount - look for Rs.amount before "Tax is not payable"
+      const totalMatch = section.match(/Rs\.([\d,]+(?:\.\d{2})?)\s+Tax is not payable/);
+      if (totalMatch) {
+        const totalStr = totalMatch[1].replace(/,/g, '');
+        customerData.totalAmount = parseFloat(totalStr);
+      }
+      
+      // Only add if we have essential data
+      if (customerData.name && customerData.orderId && customerData.totalAmount) {
+        orders.push({
+          ...customerData,
+          isRepeatCustomer: false // Will be determined by backend logic
+        });
+      }
+      
+    } catch (error) {
+      console.warn('Error parsing invoice section:', error);
+      continue; // Skip this section and continue with next
+    }
+  }
+  
+  return orders;
+}
