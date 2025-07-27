@@ -92,149 +92,352 @@ export const parseBill = parsePdfBill;
 function parseInvoiceBlock(text) {
     console.log('🔍 Parsing invoice block...');
     
-    // Extract BILL TO information with correct group mapping
-    const billToMatch = text.match(/BILL TO \/ SHIP TO\s+([^-]+?)\s*-\s*([^,]+?),?\s*([^,]+?),?\s*([^,]+?),?\s*([^,]+?),?\s*(\d{6})/);
-    
-    if (!billToMatch) {
-        console.log('⚠️ Could not find BILL TO section');
-        return null;
-    }
-    
-    console.log('📍 BILL TO match found:');
-    console.log('Group 1 (name):', billToMatch[1]?.trim());
-    console.log('Group 2 (street):', billToMatch[2]?.trim());
-    console.log('Group 3 (area):', billToMatch[3]?.trim());
-    console.log('Group 4 (city):', billToMatch[4]?.trim());
-    console.log('Group 5 (state):', billToMatch[5]?.trim());
-    console.log('Group 6 (pincode):', billToMatch[6]?.trim());
-    
-    const customerData = {
-        name: billToMatch[1].trim(),
-        address: billToMatch[2].trim(),
-        area: billToMatch[3].trim(),
-        city: billToMatch[4].trim(),    // Fixed: Group 4 is city
-        state: billToMatch[5].trim(),   // Fixed: Group 5 is state
-        pincode: billToMatch[6].trim()
+    // Initialize result with defaults
+    const result = {
+        orderId: 'UNKNOWN',
+        invoiceId: `INV_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        orderDate: new Date(),
+        customerData: {
+            name: 'Unknown Customer',
+            address: 'Unknown Address',
+            area: 'Unknown Area',
+            city: 'Unknown City',
+            state: 'Unknown State',
+            pincode: '000000'
+        },
+        products: [],
+        totalAmount: 0
     };
     
-    // Extract Order ID and Invoice ID
-    const orderIdMatch = text.match(/Order ID\s*[:]*\s*(\d+)/i) || text.match(/(\d{12,})/);
-    const orderId = orderIdMatch ? orderIdMatch[1] : 'UNKNOWN';
-    
-    // Extract Invoice ID
-    const invoiceIdMatch = text.match(/Invoice No\.\s*[:]*\s*([^\s\n]+)/i) || text.match(/Invoice ID\s*[:]*\s*([^\s\n]+)/i);
-    const invoiceId = invoiceIdMatch ? invoiceIdMatch[1] : `INV_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Extract date from multiple possible formats
-    let orderDate = null;
-    const datePatterns = [
-        /Invoice Date\s*[:]*\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
-        /Date\s*[:]*\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
-        /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/
-    ];
-    
-    for (const pattern of datePatterns) {
-        const dateMatch = text.match(pattern);
-        if (dateMatch) {
-            orderDate = new Date(dateMatch[1]);
-            break;
-        }
+    // 1. More robust BILL TO parsing - find section first, then extract fields
+    const customerData = parseBillToSection(text);
+    if (customerData) {
+        result.customerData = customerData;
     }
     
-    if (!orderDate || isNaN(orderDate)) {
-        orderDate = new Date(); // Fallback to current date
+    // 2. Robust parsing of individual fields with try-catch
+    result.orderId = parseOrderId(text) || result.orderId;
+    result.invoiceId = parseInvoiceId(text) || result.invoiceId;
+    result.orderDate = parseOrderDate(text) || result.orderDate;
+    
+    // 3. Parse products
+    result.products = parseProducts(text);
+    
+    // 4. More robust total amount parsing
+    result.totalAmount = parseTotalAmount(text, result.products);
+    
+    // If no products found but we have an amount, create a generic product
+    if (result.products.length === 0 && result.totalAmount > 0) {
+        result.products.push({
+            name: 'Product',
+            size: 'Free Size',
+            price: result.totalAmount,
+            quantity: 1,
+            color: '',
+            orderNumber: ''
+        });
     }
     
-    // Extract product information - Updated for Meesho format
-    const products = [];
+    console.log(`💰 Extracted ${result.products.length} products, total amount: ₹${result.totalAmount}`);
+    console.log(`👤 Customer: ${result.customerData.name} from ${result.customerData.city}, ${result.customerData.state}`);
     
-    // Look for Meesho product patterns in the text - More precise patterns
-    const productPatterns = [
-        // Pattern for products with specific format: ProductName Free Size Qty Color OrderNumber
-        /(\w+(?:\s+\w+)*)\s+Free Size\s+(\d+)\s+([^₹\n\d]+?)\s+(\d{17,}_\d+)/g,
-        // Alternative pattern for combo products  
-        /((?:3?Combo|Ayan|Surat)\w*[^,\n]*)\s+Free Size\s+(\d+)\s+([^₹\n\d]+?)\s+(\d{17,}_\d+)/g
-    ];
-    
-    let totalAmount = 0;
-    let hasProducts = false;
-    
-    for (const pattern of productPatterns) {
-        let match;
-        while ((match = pattern.exec(text)) !== null) {
-            const productName = match[1].trim();
-            const quantity = parseInt(match[2]);
-            const color = match[3].trim();
-            const orderNumber = match[4].trim();
-            
-            console.log(`📦 Found product: ${productName}, Qty: ${quantity}, Color: ${color}, Order: ${orderNumber}`);
-            
-            // Skip if product name is too long (likely extracted wrong text)
-            if (productName.length > 100) {
-                console.log(`⚠️ Skipping product with long name: ${productName.substring(0, 50)}...`);
-                continue;
-            }
-            
-            if (productName && quantity > 0) {
-                const defaultAmount = 299; // Default price for Meesho products
-                
-                products.push({
-                    name: productName,
-                    size: 'Free Size',
-                    price: defaultAmount,
-                    quantity: quantity,
-                    color: color,
-                    orderNumber: orderNumber
-                });
-                totalAmount += defaultAmount * quantity;
-                hasProducts = true;
-            }
-        }
-        if (hasProducts) break; // If we found products with one pattern, don't try others
-    }
-    
-    // If no products found with the main pattern, try alternative patterns
-    if (!hasProducts) {
-        // Try to find any amount patterns first
-        const amountPatterns = [
-            /Total\s*Amount\s*[:]*\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-            /Grand\s*Total\s*[:]*\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-            /Amount\s*[:]*\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-            /₹\s*([\d,]+(?:\.\d{2})?)/
-        ];
+    return result.products.length > 0 ? result : null;
+}
+
+// More robust BILL TO section parsing
+function parseBillToSection(text) {
+    try {
+        console.log('📍 Parsing BILL TO section...');
         
-        for (const pattern of amountPatterns) {
-            const amountMatch = text.match(pattern);
-            if (amountMatch) {
-                totalAmount = parseFloat(amountMatch[1].replace(/,/g, ''));
-                console.log(`💰 Found amount: ₹${totalAmount}`);
+        // First, find the "BILL TO" or "SHIP TO" section
+        const billToIndex = text.search(/BILL\s+TO[\s\/]*SHIP\s+TO|BILL\s+TO|SHIP\s+TO/i);
+        if (billToIndex === -1) {
+            console.log('⚠️ Could not find BILL TO section');
+            return null;
+        }
+        
+        // Extract text after BILL TO section (next ~300 characters should contain customer info)
+        const billToSection = text.substring(billToIndex, billToIndex + 400);
+        console.log('📄 BILL TO section:', billToSection.substring(0, 200));
+        
+        // Split into lines and process line by line
+        const lines = billToSection.split(/\n|\r\n/).map(line => line.trim()).filter(line => line.length > 0);
+        
+        let customerName = '';
+        let address = '';
+        let area = '';
+        let city = '';
+        let state = '';
+        let pincode = '';
+        
+        // Skip the BILL TO header line and process subsequent lines
+        let startIndex = 0;
+        for (let i = 0; i < lines.length; i++) {
+            if (/BILL\s+TO|SHIP\s+TO/i.test(lines[i])) {
+                startIndex = i + 1;
                 break;
             }
         }
         
-        // If we found an amount but no products, create a generic product entry
-        if (totalAmount > 0) {
-            products.push({
-                name: 'Product',
-                size: 'Free Size',
-                price: totalAmount,
-                quantity: 1,
-                color: '',
-                orderNumber: ''
-            });
-            hasProducts = true;
+        // Extract customer name (usually first non-header line)
+        if (startIndex < lines.length && lines[startIndex]) {
+            customerName = lines[startIndex].replace(/[-,]/g, '').trim();
         }
+        
+        // Try to extract address components from subsequent lines or combined format
+        const addressText = lines.slice(startIndex + 1).join(' ');
+        
+        // Try pattern matching for pincode first (most reliable)
+        const pincodeMatch = addressText.match(/(\d{6})/);
+        if (pincodeMatch) {
+            pincode = pincodeMatch[1];
+        }
+        
+        // Try to extract state (common Indian states)
+        const stateMatch = addressText.match(/(Gujarat|Maharashtra|Rajasthan|Tamil Nadu|Karnataka|Kerala|Andhra Pradesh|Telangana|West Bengal|Uttar Pradesh|Madhya Pradesh|Bihar|Odisha|Punjab|Haryana|Jharkhand|Assam|Himachal Pradesh|Uttarakhand|Chhattisgarh|Goa|Manipur|Meghalaya|Tripura|Nagaland|Mizoram|Arunachal Pradesh|Sikkim)/i);
+        if (stateMatch) {
+            state = stateMatch[1];
+        }
+        
+        // Extract city (word before state or before pincode)
+        if (state) {
+            const cityMatch = addressText.match(new RegExp(`([A-Za-z\\s]+?)\\s*,?\\s*${state}`, 'i'));
+            if (cityMatch) {
+                city = cityMatch[1].trim().replace(/,$/, '');
+            }
+        } else if (pincode) {
+            const cityMatch = addressText.match(/([A-Za-z\s]+?)\s*,?\s*\d{6}/);
+            if (cityMatch) {
+                city = cityMatch[1].trim().replace(/,$/, '');
+            }
+        }
+        
+        // Extract address (everything before city/state/pincode)
+        const addressParts = addressText.split(/,|\n/).map(part => part.trim()).filter(part => part.length > 0);
+        address = addressParts[0] || '';
+        area = addressParts[1] || '';
+        
+        console.log('📍 Extracted customer data:', { customerName, address, area, city, state, pincode });
+        
+        return {
+            name: customerName || 'Unknown Customer',
+            address: address || 'Unknown Address',
+            area: area || 'Unknown Area',
+            city: city || 'Unknown City',
+            state: state || 'Unknown State',
+            pincode: pincode || '000000'
+        };
+        
+    } catch (error) {
+        console.warn('⚠️ Error parsing BILL TO section:', error.message);
+        return null;
     }
-    
-    console.log(`💰 Extracted ${products.length} products, total amount: ₹${totalAmount}`);
-    console.log(`👤 Customer: ${customerData.name} from ${customerData.city}, ${customerData.state}`);
-    
-    return {
-        orderId,
-        invoiceId,
-        orderDate,
-        customerData,
-        products,
-        totalAmount
-    };
+}
+
+// Robust Order ID parsing
+function parseOrderId(text) {
+    try {
+        console.log('🔢 Parsing Order ID...');
+        
+        const patterns = [
+            /Order\s+ID\s*[:]*\s*(\d+)/i,
+            /Order\s+No\.?\s*[:]*\s*(\d+)/i,
+            /Order\s*[:]*\s*(\d+)/i,
+            /(\d{12,})/  // Long number fallback
+        ];
+        
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                console.log(`✅ Found Order ID: ${match[1]}`);
+                return match[1];
+            }
+        }
+        
+        console.warn('⚠️ Could not find Order ID');
+        return null;
+    } catch (error) {
+        console.warn('⚠️ Error parsing Order ID:', error.message);
+        return null;
+    }
+}
+
+// Robust Invoice ID parsing
+function parseInvoiceId(text) {
+    try {
+        console.log('📄 Parsing Invoice ID...');
+        
+        const patterns = [
+            /Invoice\s+No\.?\s*[:]*\s*([^\s\n]+)/i,
+            /Invoice\s+ID\s*[:]*\s*([^\s\n]+)/i,
+            /Invoice\s*[:]*\s*([^\s\n]+)/i,
+            /INV[-_]?(\w+)/i
+        ];
+        
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                console.log(`✅ Found Invoice ID: ${match[1]}`);
+                return match[1];
+            }
+        }
+        
+        console.warn('⚠️ Could not find Invoice ID');
+        return null;
+    } catch (error) {
+        console.warn('⚠️ Error parsing Invoice ID:', error.message);
+        return null;
+    }
+}
+
+// Robust date parsing
+function parseOrderDate(text) {
+    try {
+        console.log('📅 Parsing Order Date...');
+        
+        const patterns = [
+            /Invoice\s+Date\s*[:]*\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+            /Order\s+Date\s*[:]*\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+            /Date\s*[:]*\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
+            /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                const date = new Date(match[1]);
+                if (!isNaN(date)) {
+                    console.log(`✅ Found Order Date: ${date.toDateString()}`);
+                    return date;
+                }
+            }
+        }
+        
+        console.warn('⚠️ Could not find valid Order Date, using current date');
+        return null;
+    } catch (error) {
+        console.warn('⚠️ Error parsing Order Date:', error.message);
+        return null;
+    }
+}
+
+// Parse products with better error handling
+function parseProducts(text) {
+    try {
+        console.log('📦 Parsing products...');
+        
+        const products = [];
+        
+        // Look for Meesho product patterns
+        const productPatterns = [
+            // Pattern for products with specific format: ProductName Free Size Qty Color OrderNumber
+            /(\w+(?:\s+\w+)*)\s+Free Size\s+(\d+)\s+([^₹\n\d]+?)\s+(\d{17,}_\d+)/g,
+            // Alternative pattern for combo products  
+            /((?:3?Combo|Ayan|Surat)\w*[^,\n]*)\s+Free Size\s+(\d+)\s+([^₹\n\d]+?)\s+(\d{17,}_\d+)/g
+        ];
+        
+        for (const pattern of productPatterns) {
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                try {
+                    const productName = match[1].trim();
+                    const quantity = parseInt(match[2]);
+                    const color = match[3].trim();
+                    const orderNumber = match[4].trim();
+                    
+                    // Skip if product name is too long (likely extracted wrong text)
+                    if (productName.length > 100) {
+                        console.log(`⚠️ Skipping product with long name: ${productName.substring(0, 50)}...`);
+                        continue;
+                    }
+                    
+                    if (productName && quantity > 0) {
+                        const defaultAmount = 299; // Default price for Meesho products
+                        
+                        products.push({
+                            name: productName,
+                            size: 'Free Size',
+                            price: defaultAmount,
+                            quantity: quantity,
+                            color: color,
+                            orderNumber: orderNumber
+                        });
+                        
+                        console.log(`✅ Found product: ${productName}, Qty: ${quantity}, Color: ${color}`);
+                    }
+                } catch (productError) {
+                    console.warn('⚠️ Error parsing individual product:', productError.message);
+                }
+            }
+            
+            if (products.length > 0) break; // If we found products with one pattern, don't try others
+        }
+        
+        console.log(`📦 Total products found: ${products.length}`);
+        return products;
+        
+    } catch (error) {
+        console.warn('⚠️ Error parsing products:', error.message);
+        return [];
+    }
+}
+
+// More robust total amount parsing - look for "Total" and "Rs." together
+function parseTotalAmount(text, products) {
+    try {
+        console.log('💰 Parsing total amount...');
+        
+        // Calculate from products if available
+        if (products.length > 0) {
+            const calculatedTotal = products.reduce((sum, product) => {
+                return sum + (product.price * product.quantity);
+            }, 0);
+            
+            if (calculatedTotal > 0) {
+                console.log(`✅ Calculated total from products: ₹${calculatedTotal}`);
+                return calculatedTotal;
+            }
+        }
+        
+        // Look for lines containing both "Total" and "Rs." or "₹"
+        const lines = text.split(/\n|\r\n/);
+        for (const line of lines) {
+            if (/total/i.test(line) && (/Rs\.?\s*\d|₹\s*\d/i.test(line))) {
+                const amountMatch = line.match(/Rs\.?\s*([\d,]+(?:\.\d{2})?)|₹\s*([\d,]+(?:\.\d{2})?)/i);
+                if (amountMatch) {
+                    const amount = parseFloat((amountMatch[1] || amountMatch[2]).replace(/,/g, ''));
+                    if (amount > 0) {
+                        console.log(`✅ Found total amount in line: ₹${amount}`);
+                        return amount;
+                    }
+                }
+            }
+        }
+        
+        // Fallback patterns
+        const patterns = [
+            /Total\s*Amount\s*[:]*\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
+            /Grand\s*Total\s*[:]*\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
+            /Final\s*Amount\s*[:]*\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
+            /Amount\s*[:]*\s*₹?\s*([\d,]+(?:\.\d{2})?)/i
+        ];
+        
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                const amount = parseFloat(match[1].replace(/,/g, ''));
+                if (amount > 0) {
+                    console.log(`✅ Found total amount with pattern: ₹${amount}`);
+                    return amount;
+                }
+            }
+        }
+        
+        console.warn('⚠️ Could not find total amount');
+        return 0;
+        
+    } catch (error) {
+        console.warn('⚠️ Error parsing total amount:', error.message);
+        return 0;
+    }
 }
