@@ -1,3 +1,32 @@
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Load environment variables from parent directory FIRST
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.join(__dirname, '..', '.env');
+
+console.log('🔧 Loading environment from:', envPath);
+const result = dotenv.config({ path: envPath });
+
+if (result.error) {
+  console.error('❌ Error loading .env:', result.error);
+} else {
+  console.log('✅ .env loaded successfully');
+}
+
+console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
+console.log('🔑 JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
+
+// Ensure JWT_SECRET is set before starting the server
+if (!process.env.JWT_SECRET) {
+  console.error('❌ JWT_SECRET environment variable is required but not set.');
+  console.error('Please create a .env file in the project root with: JWT_SECRET=your_secret_key');
+  console.error('You can generate a secure key with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+  process.exit(1);
+}
+
 import express from 'express';
 import mongoose from 'mongoose';
 import multer from 'multer';
@@ -6,8 +35,6 @@ import Order from './models/Order.js';
 import authMiddleware from './middleware/authMiddleware.js';
 import authRoutes from './routes/auth.js';
 import { parseBill } from './billParser.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const app = express();
 app.use(cors());
@@ -18,8 +45,6 @@ app.use(express.json());
   const testUserId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'); // Fixed test user ID
 
 // Serve uploads directory (outside project root)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 app.use('/uploads', express.static(path.resolve(__dirname, '../../uploads')));
 
 // MongoDB connection

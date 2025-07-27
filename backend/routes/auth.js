@@ -9,6 +9,14 @@ const upload = multer({ dest: '../uploads/' });
 
 const router = express.Router();
 
+// Function to check JWT_SECRET and sign tokens
+function signJWT(payload) {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required but not set. Please set JWT_SECRET in your environment variables.');
+  }
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+}
+
 // Delete current user and their orders
 router.delete('/me', authMiddleware, async (req, res) => {
   const { password } = req.body;
@@ -59,7 +67,7 @@ router.post('/signup', async (req, res) => {
     if (existing) return res.status(409).json({ message: 'Email already exists' });
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hash, fullName, mobile, shopName });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'dobara_secret', { expiresIn: '7d' });
+    const token = signJWT({ id: user._id });
     res.json({ token });
   } catch (err) {
     res.status(500).json({ message: 'Signup failed' });
@@ -75,7 +83,7 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'dobara_secret', { expiresIn: '7d' });
+    const token = signJWT({ id: user._id });
     res.json({ token });
   } catch (err) {
     res.status(500).json({ message: 'Login failed' });
