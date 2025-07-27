@@ -321,6 +321,140 @@ function parseOrderDate(text) {
     }
 }
 
+// Function to find line item price near product details
+function findLineItemPrice(text, productName, orderNumber, quantity) {
+    try {
+        console.log(`💰 Searching for line item price for: ${productName}`);
+        
+        // Create a search context around the product mention
+        const searchTerms = [
+            productName,
+            orderNumber,
+            `Free Size.*?${quantity}`, // Pattern with size and quantity
+        ].filter(term => term && term.length > 3); // Only use meaningful terms
+        
+        let bestPrice = null;
+        let searchRadius = 200; // Characters to search before/after product mention
+        
+        for (const searchTerm of searchTerms) {
+            try {
+                const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                let match;
+                
+                while ((match = regex.exec(text)) !== null) {
+                    const startPos = Math.max(0, match.index - searchRadius);
+                    const endPos = Math.min(text.length, match.index + match[0].length + searchRadius);
+                    const contextText = text.substring(startPos, endPos);
+                    
+                    console.log(`🔍 Searching context around "${searchTerm}": ${contextText.substring(0, 100)}...`);
+                    
+                    // Look for price patterns in the context
+                    const pricePatterns = [
+                        // Most specific patterns first
+                        /₹\s*([\d,]+(?:\.\d{2})?)/g,
+                        /Rs\.?\s*([\d,]+(?:\.\d{2})?)/g,
+                        /INR\s*([\d,]+(?:\.\d{2})?)/g,
+                        // Look for isolated numbers that might be prices (between 50-5000 range for Meesho)
+                        /\b((?:[1-4]?\d{2,3}|5000))\b/g
+                    ];
+                    
+                    for (const pricePattern of pricePatterns) {
+                        let priceMatch;
+                        while ((priceMatch = pricePattern.exec(contextText)) !== null) {
+                            const priceStr = priceMatch[1].replace(/,/g, '');
+                            const price = parseFloat(priceStr);
+                            
+                            // Validate price range (reasonable for Meesho products)
+                            if (price >= 50 && price <= 5000) {
+                                console.log(`💰 Found potential price: ₹${price} for ${productName}`);
+                                
+                                // Prefer prices that are closer to the product mention
+                                const distance = Math.abs(priceMatch.index - (match.index - startPos));
+                                if (!bestPrice || distance < bestPrice.distance) {
+                                    bestPrice = { price, distance };
+                                }
+                            }
+                        }
+                        pricePattern.lastIndex = 0; // Reset regex
+                    }
+                }
+                regex.lastIndex = 0; // Reset regex
+            } catch (regexError) {
+                console.warn(`⚠️ Regex error for search term "${searchTerm}":`, regexError.message);
+            }
+        }
+        
+        if (bestPrice) {
+            console.log(`✅ Found line item price: ₹${bestPrice.price} for ${productName}`);
+            return bestPrice.price;
+        }
+        
+        // Fallback: try to find any reasonable price in a broader context
+        const fallbackPrice = findFallbackPrice(text, quantity);
+        if (fallbackPrice) {
+            console.log(`💡 Using fallback price: ₹${fallbackPrice} for ${productName}`);
+            return fallbackPrice;
+        }
+        
+        // Final fallback to default
+        const defaultPrice = 299;
+        console.warn(`⚠️ Could not find line item price for ${productName}, using default: ₹${defaultPrice}`);
+        return defaultPrice;
+        
+    } catch (error) {
+        console.warn(`⚠️ Error finding line item price for ${productName}:`, error.message);
+        return 299; // Default fallback
+    }
+}
+
+// Function to find a fallback price based on common patterns
+function findFallbackPrice(text, quantity) {
+    try {
+        // Look for total amounts and try to derive unit price
+        const totalPatterns = [
+            /Total.*?₹\s*([\d,]+(?:\.\d{2})?)/gi,
+            /Amount.*?₹\s*([\d,]+(?:\.\d{2})?)/gi,
+            /₹\s*([\d,]+(?:\.\d{2})?)/g
+        ];
+        
+        const foundAmounts = [];
+        
+        for (const pattern of totalPatterns) {
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                const amount = parseFloat(match[1].replace(/,/g, ''));
+                if (amount >= 50 && amount <= 10000) {
+                    foundAmounts.push(amount);
+                }
+            }
+            pattern.lastIndex = 0;
+        }
+        
+        if (foundAmounts.length > 0) {
+            // Try to find a reasonable unit price
+            for (const amount of foundAmounts) {
+                const unitPrice = Math.round(amount / quantity);
+                if (unitPrice >= 50 && unitPrice <= 2000) {
+                    console.log(`💡 Calculated unit price from total: ₹${unitPrice} (₹${amount} ÷ ${quantity})`);
+                    return unitPrice;
+                }
+            }
+            
+            // If calculation doesn't work, use the smallest reasonable amount
+            const smallestAmount = Math.min(...foundAmounts.filter(a => a >= 100 && a <= 1000));
+            if (smallestAmount && smallestAmount !== Infinity) {
+                console.log(`💡 Using smallest reasonable amount: ₹${smallestAmount}`);
+                return smallestAmount;
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.warn('⚠️ Error in fallback price calculation:', error.message);
+        return null;
+    }
+}
+
 // Parse products with better error handling
 function parseProducts(text) {
     try {
@@ -352,18 +486,19 @@ function parseProducts(text) {
                     }
                     
                     if (productName && quantity > 0) {
-                        const defaultAmount = 299; // Default price for Meesho products
+                        // Try to find line item total near this product
+                        const lineItemPrice = findLineItemPrice(text, productName, orderNumber, quantity);
                         
                         products.push({
                             name: productName,
                             size: 'Free Size',
-                            price: defaultAmount,
+                            price: lineItemPrice,
                             quantity: quantity,
                             color: color,
                             orderNumber: orderNumber
                         });
                         
-                        console.log(`✅ Found product: ${productName}, Qty: ${quantity}, Color: ${color}`);
+                        console.log(`✅ Found product: ${productName}, Qty: ${quantity}, Color: ${color}, Price: ₹${lineItemPrice}`);
                     }
                 } catch (productError) {
                     console.warn('⚠️ Error parsing individual product:', productError.message);
