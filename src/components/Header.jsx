@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserCircleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../context/AuthContext.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Header() {
   const { user, isLoading } = useAuth();

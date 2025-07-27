@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { HomeIcon, TableCellsIcon, ChartBarIcon, ArrowUpTrayIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../context/AuthContext.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const navGroups = [
   {

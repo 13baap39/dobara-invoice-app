@@ -3,7 +3,7 @@ import api from '../api';
 import StatsCard from '../components/StatsCard';
 import { motion } from 'framer-motion';
 import { UserGroupIcon, CurrencyRupeeIcon, BuildingOffice2Icon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../context/AuthContext.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Dashboard() {
   const [summary, setSummary] = useState({ totalOrders: 0, totalRevenue: 0, topCities: [], repeatCustomers: [] });
