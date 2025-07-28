@@ -10,6 +10,15 @@ GlobalWorkerOptions.workerSrc = path.join(__dirname, 'node_modules', 'pdfjs-dist
 
 export async function parsePdfBill(fileData) {
     try {
+        // Input validation
+        if (!fileData) {
+            throw new Error('No file data provided');
+        }
+        
+        if (!(fileData instanceof Buffer) && !(fileData instanceof Uint8Array) && !Array.isArray(fileData)) {
+            throw new Error('Invalid file data format. Expected Buffer, Uint8Array, or Array');
+        }
+        
         console.log('📄 Starting PDF parsing for file buffer');
         
         // Convert Buffer to Uint8Array for PDF.js
@@ -29,10 +38,22 @@ export async function parsePdfBill(fileData) {
             const textContent = await page.getTextContent();
             const pageText = textContent.items.map(item => item.str).join(' ');
             fullText += pageText + '\n';
+            
+            // Clean up page reference to prevent memory leaks
+            page.cleanup?.();
         }
         
         console.log('📝 Text extraction complete');
         console.log('🔍 Full text length:', fullText.length);
+        
+        // Safety check for extremely large text (potential memory issue)
+        if (fullText.length > 10000000) { // 10MB limit
+            console.warn(`⚠️ Text is very large (${fullText.length} characters). Processing may be slow.`);
+        }
+        
+        if (fullText.length === 0) {
+            throw new Error('No text could be extracted from PDF');
+        }
         
         // Split by "TAX INVOICE" to separate different invoices
         const invoiceBlocks = fullText.split(/TAX INVOICE/).filter(block => block.trim().length > 0);
@@ -78,6 +99,14 @@ export async function parsePdfBill(fileData) {
         }
         
         console.log(`🎯 Total results: ${results.length}`);
+        
+        // Clean up PDF resources
+        try {
+            await pdf.destroy();
+        } catch (cleanupError) {
+            console.warn('⚠️ Error cleaning up PDF resources:', cleanupError.message);
+        }
+        
         return results;
         
     } catch (error) {
@@ -95,7 +124,7 @@ function parseInvoiceBlock(text) {
     // Initialize result with defaults
     const result = {
         orderId: 'UNKNOWN',
-        invoiceId: `INV_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        invoiceId: `INV_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         orderDate: new Date(),
         customerData: {
             name: 'Unknown Customer',
@@ -433,10 +462,13 @@ function findFallbackPrice(text, quantity) {
         if (foundAmounts.length > 0) {
             // Try to find a reasonable unit price
             for (const amount of foundAmounts) {
-                const unitPrice = Math.round(amount / quantity);
-                if (unitPrice >= 50 && unitPrice <= 2000) {
-                    console.log(`💡 Calculated unit price from total: ₹${unitPrice} (₹${amount} ÷ ${quantity})`);
-                    return unitPrice;
+                // Prevent division by zero
+                if (quantity > 0) {
+                    const unitPrice = Math.round(amount / quantity);
+                    if (unitPrice >= 50 && unitPrice <= 2000) {
+                        console.log(`💡 Calculated unit price from total: ₹${unitPrice} (₹${amount} ÷ ${quantity})`);
+                        return unitPrice;
+                    }
                 }
             }
             
