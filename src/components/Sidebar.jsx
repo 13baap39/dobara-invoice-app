@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { HomeIcon, TableCellsIcon, ChartBarIcon, ArrowUpTrayIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, TableCellsIcon, ChartBarIcon, ArrowUpTrayIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, UserIcon, ArrowRightOnRectangleIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const navGroups = [
@@ -12,10 +12,16 @@ const navGroups = [
     ]
   },
   {
+    label: 'Tools',
+    items: [
+      { name: 'Upload', to: '/upload', icon: <ArrowUpTrayIcon className="w-6 h-6" /> },
+      { name: 'Leaflet Maker', to: '/leaflet-maker', icon: <SparklesIcon className="w-6 h-6" /> },
+    ]
+  },
+  {
     label: 'Reports',
     items: [
       { name: 'Analytics', to: '/analytics', icon: <ChartBarIcon className="w-6 h-6" /> },
-      { name: 'Upload', to: '/upload', icon: <ArrowUpTrayIcon className="w-6 h-6" /> },
     ]
   }
 ];

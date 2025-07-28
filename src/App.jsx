@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Analytics from './pages/Analytics';
 import Upload from './pages/Upload';
+import LeafletMaker from './pages/LeafletMaker';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -30,6 +31,7 @@ export default function App() {
                     <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
                     <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
                     <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+                    <Route path="/leaflet-maker" element={<ProtectedRoute><LeafletMaker /></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
