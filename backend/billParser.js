@@ -75,12 +75,12 @@ export async function parsePdfBill(fileData) {
                             invoiceId: `${invoiceData.invoiceId}_${Date.now()}_${results.length + 1}`, // Make unique with timestamp
                             originalInvoiceId: invoiceData.invoiceId, // Original invoice ID for duplicate checking
                             orderDate: invoiceData.orderDate,
-                            customerName: invoiceData.customerData.name,
-                            customerAddress: invoiceData.customerData.address,
-                            customerArea: invoiceData.customerData.area,
-                            customerCity: invoiceData.customerData.city,
-                            customerState: invoiceData.customerData.state,
-                            customerPincode: invoiceData.customerData.pincode,
+                            name: invoiceData.customerData.name,
+                            address: invoiceData.customerData.address,
+                            area: invoiceData.customerData.area,
+                            city: invoiceData.customerData.city,
+                            state: invoiceData.customerData.state,
+                            pincode: invoiceData.customerData.pincode,
                             sku: product.name,
                             size: product.size,
                             amount: product.price,

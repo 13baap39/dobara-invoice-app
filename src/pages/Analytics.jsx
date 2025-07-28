@@ -46,12 +46,12 @@ export default function Analytics() {
   return (
     <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col gap-8 max-w-6xl mx-auto">
       <div className="flex flex-col gap-1 mb-2">
-        <h1 className="text-xl font-light text-gray-100">Analytics</h1>
-        <span className="text-muted text-sm">Trends & Performance</span>
+        <h1 className="text-xl font-light text-light-text dark:text-gray-100">Analytics</h1>
+        <span className="text-light-muted dark:text-muted text-sm">Trends & Performance</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="bg-card bg-card-gradient border border-border rounded-xl shadow-card p-6">
-          <div className="text-lg font-light text-gray-100 mb-2">Orders by City</div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="bg-light-card dark:bg-card dark:bg-card-gradient border border-light-border dark:border-border rounded-xl shadow-card p-6">
+          <div className="text-lg font-light text-light-text dark:text-gray-100 mb-2">Orders by City</div>
           {loading ? <LoadingSkeleton className="h-64 w-full rounded-xl" /> : (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={cityStats}>
@@ -63,8 +63,8 @@ export default function Analytics() {
             </ResponsiveContainer>
           )}
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="bg-card bg-card-gradient border border-border rounded-xl shadow-card p-6">
-          <div className="text-lg font-light text-gray-100 mb-2">Revenue Trend (This Month)</div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="bg-light-card dark:bg-card dark:bg-card-gradient border border-light-border dark:border-border rounded-xl shadow-card p-6">
+          <div className="text-lg font-light text-light-text dark:text-gray-100 mb-2">Revenue Trend (This Month)</div>
           {loading ? <LoadingSkeleton className="h-64 w-full rounded-xl" /> : (
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={revenueTrend}>
@@ -78,28 +78,28 @@ export default function Analytics() {
           )}
         </motion.div>
       </div>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="bg-card bg-card-gradient border border-border rounded-xl shadow-card p-6">
-        <div className="text-lg font-light text-gray-100 mb-2">Repeat Customers (This Month)</div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="bg-light-card dark:bg-card dark:bg-card-gradient border border-light-border dark:border-border rounded-xl shadow-card p-6">
+        <div className="text-lg font-light text-light-text dark:text-gray-100 mb-2">Repeat Customers (This Month)</div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-dark border-b border-border">
+            <thead className="bg-light-border dark:bg-dark border-b border-light-border dark:border-border">
               <tr>
-                <th className="px-4 py-2 text-left text-muted font-semibold">Name</th>
-                <th className="px-4 py-2 text-left text-muted font-semibold">Pincode</th>
-                <th className="px-4 py-2 text-left text-muted font-semibold">Months</th>
+                <th className="px-4 py-2 text-left text-light-muted dark:text-muted font-semibold">Name</th>
+                <th className="px-4 py-2 text-left text-light-muted dark:text-muted font-semibold">Pincode</th>
+                <th className="px-4 py-2 text-left text-light-muted dark:text-muted font-semibold">Months</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={3} className="text-center py-8 text-muted"><LoadingSkeleton className="h-6 w-full rounded" /></td></tr>
+                <tr><td colSpan={3} className="text-center py-8 text-light-muted dark:text-muted"><LoadingSkeleton className="h-6 w-full rounded" /></td></tr>
               ) : repeatCustomers.length === 0 ? (
-                <tr><td colSpan={3} className="text-center py-8 text-muted">No repeat customers</td></tr>
+                <tr><td colSpan={3} className="text-center py-8 text-light-muted dark:text-muted">No repeat customers</td></tr>
               ) : (
                 repeatCustomers.map((cust, idx) => (
                   <tr key={idx}>
-                    <td className="px-4 py-2 text-text">{cust._id.name}</td>
-                    <td className="px-4 py-2 text-text">{cust._id.pincode}</td>
-                    <td className="px-4 py-2 text-text">{cust.months.map(m => `${m.month}/${m.year} (${m.count})`).join(', ')}</td>
+                    <td className="px-4 py-2 text-light-text dark:text-text">{cust._id.name}</td>
+                    <td className="px-4 py-2 text-light-text dark:text-text">{cust._id.pincode}</td>
+                    <td className="px-4 py-2 text-light-text dark:text-text">{cust.months.map(m => `${m.month}/${m.year} (${m.count})`).join(', ')}</td>
                   </tr>
                 ))
               )}

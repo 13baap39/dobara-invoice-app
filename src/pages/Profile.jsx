@@ -136,10 +136,10 @@ export default function Profile() {
     }
   };
 
-  if (!profile) return <div className="text-center text-white mt-10">Loading profile...</div>;
+  if (!profile) return <div className="text-center text-light-text dark:text-white mt-10">Loading profile...</div>;
 
   return (
-    <div className="max-w-lg mx-auto bg-gray-900 rounded-lg shadow-lg p-8 mt-10 text-white">
+    <div className="max-w-lg mx-auto bg-light-card dark:bg-gray-900 rounded-lg shadow-lg p-8 mt-10 text-light-text dark:text-white border border-light-border dark:border-gray-700">
       <h2 className="text-2xl font-bold mb-6">Profile</h2>
       <div className="flex flex-col items-center mb-6">
         <label className="cursor-pointer relative group">
@@ -174,10 +174,10 @@ export default function Profile() {
       </div>
       {edit ? (
         <form onSubmit={handleSubmit}>
-          <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Full Name" className="w-full mb-4 px-4 py-2 rounded bg-gray-800 text-white focus:outline-none" required />
-          <input name="email" value={form.email} onChange={handleChange} placeholder="Email" className="w-full mb-4 px-4 py-2 rounded bg-gray-800 text-white focus:outline-none" required disabled />
-          <input name="mobile" value={form.mobile} onChange={handleChange} placeholder="Mobile Number" className="w-full mb-4 px-4 py-2 rounded bg-gray-800 text-white focus:outline-none" required />
-          <input name="shopName" value={form.shopName} onChange={handleChange} placeholder="Meesho Shop Name" className="w-full mb-4 px-4 py-2 rounded bg-gray-800 text-white focus:outline-none" required />
+          <input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Full Name" className="w-full mb-4 px-4 py-2 rounded bg-light dark:bg-gray-800 text-light-text dark:text-white border border-light-border dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-accent" required />
+          <input name="email" value={form.email} onChange={handleChange} placeholder="Email" className="w-full mb-4 px-4 py-2 rounded bg-light dark:bg-gray-800 text-light-text dark:text-white border border-light-border dark:border-gray-600 focus:outline-none opacity-60" required disabled />
+          <input name="mobile" value={form.mobile} onChange={handleChange} placeholder="Mobile Number" className="w-full mb-4 px-4 py-2 rounded bg-light dark:bg-gray-800 text-light-text dark:text-white border border-light-border dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-accent" required />
+          <input name="shopName" value={form.shopName} onChange={handleChange} placeholder="Meesho Shop Name" className="w-full mb-4 px-4 py-2 rounded bg-light dark:bg-gray-800 text-light-text dark:text-white border border-light-border dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-accent" required />
           {error && <div className="text-red-400 mb-4 text-sm">{error}</div>}
           {success && <div className="text-green-400 mb-4 text-sm">{success}</div>}
           <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded transition" disabled={loading}>

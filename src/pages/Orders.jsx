@@ -36,65 +36,65 @@ export default function Orders() {
 
   return (
     <div className="flex flex-col gap-8 px-4 md:px-0 py-8 max-w-6xl mx-auto">
-      <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-2xl font-bold text-white mb-2">Orders</motion.h1>
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="sticky top-16 z-10 bg-dark border-b border-border py-4 flex flex-wrap gap-4 items-end">
-        <div className="flex items-center bg-card border border-border rounded-lg px-3 py-2 gap-2">
-          <MagnifyingGlassIcon className="w-5 h-5 text-muted" />
+      <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-2xl font-bold text-light-text dark:text-white mb-2">Orders</motion.h1>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="sticky top-16 z-10 bg-light dark:bg-dark border-b border-light-border dark:border-border py-4 flex flex-wrap gap-4 items-end">
+        <div className="flex items-center bg-light-card dark:bg-card border border-light-border dark:border-border rounded-lg px-3 py-2 gap-2">
+          <MagnifyingGlassIcon className="w-5 h-5 text-light-muted dark:text-muted" />
           <input
             type="text"
             placeholder="Search by name or SKU"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="bg-transparent outline-none text-text placeholder:text-muted w-40"
+            className="bg-transparent outline-none text-light-text dark:text-text placeholder:text-light-muted dark:placeholder:text-muted w-40"
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-xs text-muted mb-1">City</label>
+          <label className="text-xs text-light-muted dark:text-muted mb-1">City</label>
           <select
             value={city}
             onChange={e => setCity(e.target.value)}
-            className="bg-card border border-border rounded-lg px-3 py-2 text-text"
+            className="bg-light-card dark:bg-card border border-light-border dark:border-border rounded-lg px-3 py-2 text-light-text dark:text-text"
           >
             <option value="">All</option>
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="flex flex-col">
-          <label className="text-xs text-muted mb-1">From</label>
+          <label className="text-xs text-light-muted dark:text-muted mb-1">From</label>
           <input
             type="date"
             value={dateRange.from}
             onChange={e => setDateRange(r => ({ ...r, from: e.target.value }))}
-            className="bg-card border border-border rounded-lg px-3 py-2 text-text"
+            className="bg-light-card dark:bg-card border border-light-border dark:border-border rounded-lg px-3 py-2 text-light-text dark:text-text"
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-xs text-muted mb-1">To</label>
+          <label className="text-xs text-light-muted dark:text-muted mb-1">To</label>
           <input
             type="date"
             value={dateRange.to}
             onChange={e => setDateRange(r => ({ ...r, to: e.target.value }))}
-            className="bg-card border border-border rounded-lg px-3 py-2 text-text"
+            className="bg-light-card dark:bg-card border border-light-border dark:border-border rounded-lg px-3 py-2 text-light-text dark:text-text"
           />
         </div>
       </motion.div>
-      <div className="bg-card border border-border rounded-xl shadow-card overflow-x-auto">
+      <div className="bg-light-card dark:bg-card border border-light-border dark:border-border rounded-xl shadow-card overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="bg-dark border-b border-border">
+          <thead className="bg-light-border dark:bg-dark border-b border-light-border dark:border-border">
             <tr>
-              <th className="px-4 py-3 text-left text-muted font-semibold">Customer Name</th>
-              <th className="px-4 py-3 text-left text-muted font-semibold">City</th>
-              <th className="px-4 py-3 text-left text-muted font-semibold">SKU</th>
-              <th className="px-4 py-3 text-left text-muted font-semibold">Order Date</th>
-              <th className="px-4 py-3 text-left text-muted font-semibold">Total Amount</th>
+              <th className="px-4 py-3 text-left text-light-muted dark:text-muted font-semibold">Customer Name</th>
+              <th className="px-4 py-3 text-left text-light-muted dark:text-muted font-semibold">City</th>
+              <th className="px-4 py-3 text-left text-light-muted dark:text-muted font-semibold">SKU</th>
+              <th className="px-4 py-3 text-left text-light-muted dark:text-muted font-semibold">Order Date</th>
+              <th className="px-4 py-3 text-left text-light-muted dark:text-muted font-semibold">Total Amount</th>
             </tr>
           </thead>
           <AnimatePresence>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="text-center py-8 text-muted">Loading...</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-light-muted dark:text-muted">Loading...</td></tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8 text-muted">No orders found</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-light-muted dark:text-muted">No orders found</td></tr>
               ) : (
                 orders.map(order => (
                   <motion.tr
@@ -105,11 +105,11 @@ export default function Orders() {
                     transition={{ duration: 0.2 }}
                     className="hover:bg-accent/5 transition"
                   >
-                    <td className="px-4 py-3 text-text">{order.name}</td>
-                    <td className="px-4 py-3 text-text">{order.city}</td>
-                    <td className="px-4 py-3 text-text">{order.sku}</td>
-                    <td className="px-4 py-3 text-text">{order.orderDate ? new Date(order.orderDate).toLocaleDateString() : ''}</td>
-                    <td className="px-4 py-3 text-text">₹{order.totalAmount}</td>
+                    <td className="px-4 py-3 text-light-text dark:text-text">{order.name}</td>
+                    <td className="px-4 py-3 text-light-text dark:text-text">{order.city}</td>
+                    <td className="px-4 py-3 text-light-text dark:text-text">{order.sku}</td>
+                    <td className="px-4 py-3 text-light-text dark:text-text">{order.orderDate ? new Date(order.orderDate).toLocaleDateString() : ''}</td>
+                    <td className="px-4 py-3 text-light-text dark:text-text">₹{order.totalAmount}</td>
                   </motion.tr>
                 ))
               )}

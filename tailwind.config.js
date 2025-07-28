@@ -8,6 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Dark theme colors
         dark: '#1E1E1E',
         card: '#242526',
         border: '#333',
@@ -15,6 +16,14 @@ export default {
         text: '#F3F4F6',
         muted: '#A0AEC0',
         skeleton: '#23272b',
+        
+        // Light theme colors
+        light: '#FFFFFF',
+        'light-card': '#F9FAFB',
+        'light-border': '#E5E7EB',
+        'light-text': '#1F2937',
+        'light-muted': '#6B7280',
+        'light-skeleton': '#F3F4F6',
       },
       backgroundImage: {
         'card-gradient': 'linear-gradient(to bottom, #242526 0%, #232425 100%)',

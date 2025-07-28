@@ -2,7 +2,8 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { extractCustomerNames } from '../utils/pdfNameExtractor.js';
+import { fileURLToPath } from 'url';
+import { extractCustomerNamesPython } from '../utils/pythonPdfExtractor.js';
 import { generateLeafletPDF, generateHybridBill } from '../utils/leafletGenerator.js';
 
 const router = express.Router();
@@ -41,7 +42,7 @@ router.post('/generate-leaflets', upload.single('pdfFile'), async (req, res) => 
     }
 
     const pdfPath = req.file.path;
-    const customerNames = await extractCustomerNames(pdfPath);
+    const customerNames = await extractCustomerNamesPython(pdfPath);
     
     if (customerNames.length === 0) {
       // Clean up uploaded file
@@ -96,7 +97,7 @@ router.post('/generate-hybrid', upload.single('pdfFile'), async (req, res) => {
     }
 
     const pdfPath = req.file.path;
-    const customerNames = await extractCustomerNames(pdfPath);
+    const customerNames = await extractCustomerNamesPython(pdfPath);
     
     if (customerNames.length === 0) {
       // Clean up uploaded file

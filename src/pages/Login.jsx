@@ -22,13 +22,13 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen w-screen flex items-center justify-center bg-gray-950">
-      <form onSubmit={handleSubmit} className="bg-gray-900 p-8 rounded-lg shadow-lg w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-center text-white">Login</h2>
+    <div className="min-h-screen w-screen flex items-center justify-center bg-light dark:bg-gray-950 transition-colors duration-300">
+      <form onSubmit={handleSubmit} className="bg-light-card dark:bg-gray-900 p-8 rounded-lg shadow-lg w-full max-w-sm border border-light-border dark:border-gray-700">
+        <h2 className="text-2xl font-bold mb-6 text-center text-light-text dark:text-white">Login</h2>
         <input
           type="email"
           placeholder="Email"
-          className="w-full mb-4 px-4 py-2 rounded bg-gray-800 text-white focus:outline-none"
+          className="w-full mb-4 px-4 py-2 rounded bg-light dark:bg-gray-800 text-light-text dark:text-white border border-light-border dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-accent"
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
@@ -37,14 +37,14 @@ export default function Login() {
           <input
             type={showPassword ? 'text' : 'password'}
             placeholder="Password"
-            className="w-full px-4 py-2 rounded bg-gray-800 text-white focus:outline-none pr-10"
+            className="w-full px-4 py-2 rounded bg-light dark:bg-gray-800 text-light-text dark:text-white border border-light-border dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-accent pr-10"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-200"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             onClick={() => setShowPassword(v => !v)}
             tabIndex={-1}
           >
@@ -60,7 +60,7 @@ export default function Login() {
             onChange={e => setRemember(e.target.checked)}
             className="mr-2 accent-indigo-600"
           />
-          <label htmlFor="remember" className="text-gray-300 text-sm select-none">Remember me</label>
+          <label htmlFor="remember" className="text-light-muted dark:text-gray-300 text-sm select-none">Remember me</label>
         </div>
         <button
           type="submit"
@@ -69,7 +69,7 @@ export default function Login() {
         >
           {isLoading ? 'Logging in...' : 'Login'}
         </button>
-        <div className="mt-4 text-center text-gray-400 text-sm">
+        <div className="mt-4 text-center text-light-muted dark:text-gray-400 text-sm">
           Don't have an account?{' '}
           <Link to="/signup" className="text-indigo-400 hover:underline">Sign up</Link>
         </div>

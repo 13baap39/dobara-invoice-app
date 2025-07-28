@@ -39,7 +39,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-8 px-4 md:px-0 py-8 max-w-5xl mx-auto">
-      <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-2xl font-bold text-white mb-2">
+      <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-2xl font-bold text-light-text dark:text-white mb-2">
         {user && (user.shopName || user.fullName || user.email) ? (
           <>Welcome, <span className="text-indigo-400">{user.shopName || user.fullName || user.email}</span>!</>
         ) : (
@@ -53,25 +53,25 @@ export default function Dashboard() {
         <StatsCard title="Repeat Customers" value={loading ? '...' : summary.repeatCustomers.length} icon={<ArrowPathIcon className="w-7 h-7" />} delay={0.2} />
       </div>
       <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-xl shadow-card p-6">
-          <h2 className="text-lg font-semibold text-text mb-4">Top 3 Cities</h2>
-          {loading ? <div className="text-muted">Loading...</div> : (
-            <ol className="list-decimal ml-6 text-text">
+        <div className="bg-light-card dark:bg-card border border-light-border dark:border-border rounded-xl shadow-card p-6">
+          <h2 className="text-lg font-semibold text-light-text dark:text-text mb-4">Top 3 Cities</h2>
+          {loading ? <div className="text-light-muted dark:text-muted">Loading...</div> : (
+            <ol className="list-decimal ml-6 text-light-text dark:text-text">
               {summary.topCities.map((city, idx) => (
-                <li key={city._id} className="mb-1">{city._id} <span className="text-muted">({city.count} orders)</span></li>
+                <li key={city._id} className="mb-1">{city._id} <span className="text-light-muted dark:text-muted">({city.count} orders)</span></li>
               ))}
             </ol>
           )}
         </div>
-        <div className="bg-card border border-border rounded-xl shadow-card p-6">
-          <h2 className="text-lg font-semibold text-text mb-4">Repeat Customers</h2>
-          {loading ? <div className="text-muted">Loading...</div> : summary.repeatCustomers.length === 0 ? (
-            <div className="text-muted">No repeat customers today</div>
+        <div className="bg-light-card dark:bg-card border border-light-border dark:border-border rounded-xl shadow-card p-6">
+          <h2 className="text-lg font-semibold text-light-text dark:text-text mb-4">Repeat Customers</h2>
+          {loading ? <div className="text-light-muted dark:text-muted">Loading...</div> : summary.repeatCustomers.length === 0 ? (
+            <div className="text-light-muted dark:text-muted">No repeat customers today</div>
           ) : (
-            <ul className="text-sm text-text">
+            <ul className="text-sm text-light-text dark:text-text">
               {summary.repeatCustomers.map((cust, idx) => (
                 <li key={idx}>
-                  <span className="font-medium">{cust._id.name}</span> ({cust._id.pincode}) <span className="text-muted">[{cust.months.map(m => `${m.month}/${m.year} (${m.count})`).join(', ')}]</span>
+                  <span className="font-medium">{cust._id.name}</span> ({cust._id.pincode}) <span className="text-light-muted dark:text-muted">[{cust.months.map(m => `${m.month}/${m.year} (${m.count})`).join(', ')}]</span>
                 </li>
               ))}
             </ul>

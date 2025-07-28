@@ -29,7 +29,6 @@ import cors from 'cors';
 import Order from './models/Order.js';
 import authMiddleware from './middleware/authMiddleware.js';
 import authRoutes from './routes/auth.js';
-import leafletsRoutes from './routes/leaflets.js';
 import { parseBill } from './billParser.js';
 
 const app = express();
@@ -56,9 +55,6 @@ app.get('/', (req, res) => {
 
 // Auth routes
 app.use('/auth', authRoutes);
-
-// Leaflets routes
-app.use('/api/leaflets', leafletsRoutes);
 
 // Test endpoint to check auth
 app.get('/test-auth', authMiddleware, (req, res) => {
