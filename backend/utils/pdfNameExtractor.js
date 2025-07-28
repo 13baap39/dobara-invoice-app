@@ -1,4 +1,4 @@
-import PDFParser from 'pdf-parse';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import fs from 'fs';
 
 /**
@@ -8,27 +8,51 @@ import fs from 'fs';
 export async function extractCustomerNames(pdfPath) {
   try {
     const pdfBuffer = fs.readFileSync(pdfPath);
-    const pdfData = await PDFParser(pdfBuffer);
-    const text = pdfData.text;
     
+    // Load the PDF document
+    const loadingTask = pdfjs.getDocument({
+      data: pdfBuffer,
+      useSystemFonts: true,
+    });
+    
+    const pdfDoc = await loadingTask.promise;
     const uniqueNames = new Set();
-    const lines = text.split('\n');
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.toUpperCase().includes('BILL TO') || line.toUpperCase().includes('SHIP TO')) {
-        // Check next line for customer name
-        if (i + 1 < lines.length) {
-          const rawName = lines[i + 1].trim();
-          const cleanedName = cleanCustomerName(rawName);
-          if (cleanedName) {
-            uniqueNames.add(cleanedName);
+    // Process each page
+    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+      const page = await pdfDoc.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Combine all text items into lines
+      const textItems = textContent.items.map(item => item.str);
+      const fullText = textItems.join('\n');
+      const lines = fullText.split('\n');
+      
+      // Look for customer names after "BILL TO" or "SHIP TO"
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.toUpperCase().includes('BILL TO') || 
+            line.toUpperCase().includes('SHIP TO') ||
+            line.toUpperCase().includes('CUSTOMER ADDRESS')) {
+          
+          // Check next few lines for customer name
+          for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+            const potentialName = lines[j].trim();
+            if (potentialName && !potentialName.toUpperCase().includes('ADDRESS')) {
+              const cleanedName = cleanCustomerName(potentialName);
+              if (cleanedName) {
+                uniqueNames.add(cleanedName);
+                break; // Found name for this section, move to next
+              }
+            }
           }
         }
       }
     }
     
+    pdfDoc.destroy();
     return Array.from(uniqueNames).sort();
+    
   } catch (error) {
     console.error('Error extracting customer names:', error);
     return [];
@@ -75,9 +99,15 @@ export function extractNameFromPageText(pageText) {
         line.toUpperCase().includes('BILL TO') || 
         line.toUpperCase().includes('SHIP TO')) {
       
-      if (i + 1 < lines.length) {
-        const rawName = lines[i + 1].trim();
-        return cleanCustomerName(rawName);
+      // Check next few lines for name
+      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+        const potentialName = lines[j].trim();
+        if (potentialName && !potentialName.toUpperCase().includes('ADDRESS')) {
+          const cleanedName = cleanCustomerName(potentialName);
+          if (cleanedName) {
+            return cleanedName;
+          }
+        }
       }
     }
   }
