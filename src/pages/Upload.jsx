@@ -2,13 +2,24 @@ import React, { useState, useRef } from 'react';
 import api from '../api';
 import { motion } from 'framer-motion';
 import LoadingSkeleton from '../components/LoadingSkeleton';
-import { ArrowUpTrayIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowUpTrayIcon, 
+  DocumentArrowUpIcon, 
+  DocumentTextIcon,
+  DocumentMagnifyingGlassIcon,
+  CheckCircleIcon,
+  XCircleIcon
+} from '@heroicons/react/24/outline';
 
 export default function Upload() {
   const [files, setFiles] = useState([]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [processedOrders, setProcessedOrders] = useState([]);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef();
 
   function handleFiles(e) {
@@ -31,18 +42,56 @@ export default function Upload() {
     if (files.length === 0) return;
     setUploading(true);
     setLoading(true);
-    const formData = new FormData();
-    files.forEach(file => formData.append('bills', file));
-    try {
-      const res = await api.post('/upload-bills', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setResult(res.data);
-    } catch (err) {
-      setResult({ error: err.message });
+    setUploadProgress(0);
+    setProcessedOrders([]);
+    
+    // Process each file one by one with progress tracking
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formData = new FormData();
+      formData.append('invoice', file);
+      
+      try {
+        // Use the new invoice upload endpoint with progress tracking
+        const res = await api.post('/api/invoices/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              ((i + (progressEvent.loaded / progressEvent.total)) / files.length) * 100
+            );
+            setUploadProgress(percentCompleted);
+          }
+        });
+        
+        // Add processed orders to state
+        if (res.data.orders) {
+          setProcessedOrders(prev => [...prev, ...res.data.orders]);
+        }
+        
+        // Update result after each file
+        setResult(prev => ({
+          uploaded: (prev?.uploaded || 0) + res.data.uploaded,
+          skipped: (prev?.skipped || 0) + res.data.skipped,
+          fileUrl: res.data.fileUrl,
+          thumbnailUrl: res.data.thumbnailUrl
+        }));
+      } catch (err) {
+        setResult({ error: err.message });
+        break;
+      }
     }
+    
     setUploading(false);
     setLoading(false);
+  }
+  
+  function openPreview(url) {
+    setPreviewUrl(url);
+    setShowPreview(true);
+  }
+  
+  function closePreview() {
+    setShowPreview(false);
   }
 
   function clearFiles(e) {
@@ -96,21 +145,110 @@ export default function Upload() {
             Clear
           </button>
         )}
-        {uploading && <LoadingSkeleton className="w-full h-2 mt-4 rounded" />}
+        {uploading && (
+          <div className="w-full mt-4">
+            <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-accent transition-all duration-300 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-light-muted dark:text-muted text-center mt-1">
+              {uploadProgress}% Complete
+            </div>
+          </div>
+        )}
       </div>
+      
       {loading && uploading && <LoadingSkeleton className="h-32 w-full rounded-xl" />}
+      
       {result && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="bg-light-card dark:bg-card dark:bg-card-gradient border border-light-border dark:border-border rounded-xl shadow-card p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.4 }} 
+          className="bg-light-card dark:bg-card dark:bg-card-gradient border border-light-border dark:border-border rounded-xl shadow-card p-6"
+        >
           {result.error ? (
-            <div className="text-red-500">Error: {result.error}</div>
+            <div className="flex items-center gap-2 text-red-500">
+              <XCircleIcon className="w-5 h-5" />
+              Error: {result.error}
+            </div>
           ) : (
             <div>
-              <div className="font-semibold text-accent mb-2">Upload Result</div>
-              <div className="mb-1 text-light-text dark:text-white">Uploaded: <span className="font-bold text-green-400">{result.uploaded}</span></div>
-              <div className="text-light-text dark:text-white">Skipped (duplicates): <span className="font-bold text-yellow-400">{result.skipped}</span></div>
+              <div className="font-semibold text-accent mb-4">Upload Result</div>
+              <div className="flex items-center gap-2 mb-2 text-light-text dark:text-white">
+                <CheckCircleIcon className="w-5 h-5 text-green-400" />
+                Uploaded: <span className="font-bold text-green-400">{result.uploaded}</span>
+              </div>
+              <div className="flex items-center gap-2 mb-4 text-light-text dark:text-white">
+                <XCircleIcon className="w-5 h-5 text-yellow-400" />
+                Skipped (duplicates): <span className="font-bold text-yellow-400">{result.skipped}</span>
+              </div>
+              
+              {result.fileUrl && (
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={() => openPreview(result.fileUrl)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-accent/20 hover:bg-accent/30 text-accent rounded text-sm"
+                  >
+                    <DocumentMagnifyingGlassIcon className="w-4 h-4" />
+                    View Invoice
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </motion.div>
+      )}
+      
+      {/* Processed Orders List */}
+      {processedOrders.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.4 }} 
+          className="bg-light-card dark:bg-card dark:bg-card-gradient border border-light-border dark:border-border rounded-xl shadow-card p-6"
+        >
+          <div className="font-semibold text-accent mb-4">Processed Orders</div>
+          <div className="space-y-4">
+            {processedOrders.map((order, idx) => (
+              <div key={idx} className="border-b border-light-border dark:border-border pb-4 last:border-0">
+                <div className="font-medium text-light-text dark:text-white mb-1">
+                  {order.customerName}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-light-muted dark:text-muted">
+                    Order: {order.orderNumber}
+                  </div>
+                  <div className="text-sm text-light-muted dark:text-muted">
+                    Total: ₹{order.totalAmount}
+                  </div>
+                </div>
+                <div className="text-xs text-light-muted dark:text-muted mt-1">
+                  SKUs: {order.skus.length}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+      
+      {/* Invoice Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={closePreview}>
+          <div className="w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-lg" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div className="font-medium">Invoice Preview</div>
+              <button onClick={closePreview} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <XCircleIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="h-[70vh] overflow-auto">
+              <iframe src={previewUrl} className="w-full h-full" title="Invoice Preview"></iframe>
+            </div>
+          </div>
+        </div>
       )}
     </motion.div>
   );

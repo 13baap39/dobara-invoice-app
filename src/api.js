@@ -11,6 +11,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Allow tracking upload progress
+    if (config.onUploadProgress) {
+      config.onUploadProgress = config.onUploadProgress;
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
