@@ -42,7 +42,7 @@ const server = createServer(app);
 
 // Configure CORS for both Express and Socket.io
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
   credentials: true
 };
 
@@ -84,10 +84,10 @@ app.use('/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 
 // Batch processing routes
-app.use('/api/invoices', batchRoutes);
+app.use('/api/batch', batchRoutes);
 
 // Search routes
-app.use('/api/orders', searchRoutes);
+app.use('/api/search', searchRoutes);
 
 // Socket.io authentication middleware
 io.use(async (socket, next) => {
@@ -323,7 +323,7 @@ app.get('/stats/summary', authMiddleware, async (req, res) => {
 });
 
 // Start HTTP server with Socket.io
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5003; // Changed to 5003 to avoid port conflict
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`🔌 Socket.io enabled for real-time updates`);

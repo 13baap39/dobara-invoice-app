@@ -135,7 +135,7 @@ router.get('/batch/:batchId', authMiddleware, async (req, res) => {
 });
 
 /**
- * @route GET /api/invoices/batches
+ * @route GET /api/batch/batches
  * @description Get user's batch history
  * @access Private
  */

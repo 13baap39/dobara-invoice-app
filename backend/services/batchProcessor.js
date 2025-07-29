@@ -312,12 +312,19 @@ pdfProcessingQueue.process('processBatch', async (job) => {
           throw new Error(`File not found: ${file.filePath}`);
         }
 
-        // Parse PDF
-        const parseResult = await parsePdfBill(file.filePath, userId);
+        // Read the file content first
+        const fileContent = await fs.readFile(file.filePath);
         
-        if (!parseResult.success) {
-          throw new Error(parseResult.error || 'PDF parsing failed');
+        // Parse PDF with the file content buffer
+        const orders = await parsePdfBill(fileContent);
+        
+        // Ensure we have valid results
+        if (!orders || !Array.isArray(orders)) {
+          throw new Error('PDF parsing failed: Invalid result format');
         }
+        
+        // Create a compatible parseResult object for the rest of the code
+        const parseResult = { orders };
 
         // Upload file to storage
         let invoiceImageUrl = null;
@@ -332,7 +339,7 @@ pdfProcessingQueue.process('processBatch', async (job) => {
         }
 
         // Save orders to database
-        const orders = parseResult.orders.map(order => ({
+        const ordersToSave = parseResult.orders.map(order => ({
           ...order,
           userId,
           invoiceImageUrl,
@@ -340,7 +347,7 @@ pdfProcessingQueue.process('processBatch', async (job) => {
           batchId
         }));
 
-        const savedOrders = await Order.insertMany(orders);
+        const savedOrders = await Order.insertMany(ordersToSave);
         allOrders.push(...savedOrders);
 
         // Update batch progress
