@@ -124,6 +124,8 @@ app.post('/upload-bills', authMiddleware, upload.array('bills'), async (req, res
             })),
             totalAmount: order.totalAmount,
             isRepeatCustomer: false, // Will be calculated later
+            invoiceImageUrl: null, // Will be set by new invoice upload endpoint
+            invoiceThumbnailUrl: null, // Will be set by new invoice upload endpoint
             createdAt: new Date()
           });
           uploaded++;

@@ -9,9 +9,12 @@ Dobara is a full-stack web application for processing Meesho invoices, tracking 
 
 ## Features
 - Upload and parse Meesho PDF invoices
-- Track customer orders and detect repeat customers
+- **NEW**: Store invoice images with cloud or local storage
+- **NEW**: View invoice thumbnails and full PDF previews
+- Track customer orders with enhanced multi-SKU support
+- Detect repeat customers
 - Analytics: city-wise, revenue, totals, repeat customers
-- Modern dashboard UI
+- Modern dashboard UI with invoice storage
 
 ## Local Development
 - Frontend: http://localhost:5173

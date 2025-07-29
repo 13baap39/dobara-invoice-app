@@ -47,22 +47,18 @@ router.post('/upload', authMiddleware, uploadMiddleware.single('invoice'), async
     }
     
     // Parse the PDF to extract order information
-    let filePath = req.file.path;
-    if (!filePath && req.file.destination) {
-      // For local storage, construct the full file path
-      filePath = `${req.file.destination}/${req.file.filename}`;
-    }
-    
-    // For local storage, read the file buffer
     let fileData;
-    if (process.env.STORAGE_TYPE !== 'cloud') {
-      const fs = await import('fs');
-      fileData = fs.readFileSync(filePath);
-    } else {
+    
+    if (process.env.STORAGE_TYPE === 'cloud') {
       // For cloud storage, we need to fetch the file
-      const fetch = await import('node-fetch');
-      const response = await fetch.default(fileUrl);
+      const response = await fetch(fileUrl);
       fileData = Buffer.from(await response.arrayBuffer());
+    } else {
+      // For local storage, read the file buffer directly
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.join(req.file.destination, req.file.filename);
+      fileData = fs.readFileSync(filePath);
     }
     
     // Parse the invoice
