@@ -79,23 +79,21 @@ app.post('/upload-bills', authMiddleware, upload.array('bills'), async (req, res
       console.log('🔢 File buffer length:', file.buffer?.length);
       
       try {
-        const skus = await parseBill(file.buffer);
-        console.log('✅ Parsed SKUs count:', skus.length);
+        const orders = await parseBill(file.buffer);
+        console.log('✅ Parsed orders count:', orders.length);
         
-        for (const sku of skus) {
-          // Check for duplicates using customer name + order ID + SKU (more stable than invoice ID)
+        for (const order of orders) {
+          // Check for duplicates using orderNumber (more stable than invoice ID)
           const duplicateQuery = {
             userId: req.user.id,
-            orderId: sku.orderId,
-            sku: sku.sku,
-            name: sku.customerName
+            orderNumber: order.orderId
           };
           
           console.log('🔍 Checking for duplicate with query:', duplicateQuery);
           const exists = await Order.findOne(duplicateQuery);
           console.log('🔍 Duplicate check result:', exists ? 'FOUND' : 'NOT FOUND');
           if (exists) {
-            console.log(`⏭️ Skipping duplicate: ${sku.sku} for order ${sku.orderId}`);
+            console.log(`⏭️ Skipping duplicate: Order ${order.orderId}`);
             skipped++;
             continue;
           }
@@ -103,19 +101,24 @@ app.post('/upload-bills', authMiddleware, upload.array('bills'), async (req, res
           // Create new order record with proper field mapping
           await Order.create({ 
             userId: req.user.id, // Using authenticated user ID
-            name: sku.customerName,
-            address: sku.customerAddress,
-            city: sku.customerCity,
-            state: sku.customerState,
-            pincode: sku.customerPincode,
-            orderId: sku.orderId,
-            invoiceId: sku.invoiceId,
-            originalInvoiceId: sku.originalInvoiceId || sku.invoiceId.split('_')[0], // Store original invoice ID
-            orderDate: sku.orderDate,
-            sku: sku.sku,
-            color: sku.color || sku.size, // Map color or size to color field
-            quantity: sku.quantity || 1,
-            totalAmount: sku.amount,
+            customerName: order.name,
+            address: order.address,
+            customerCity: order.city,
+            state: order.state,
+            pincode: order.pincode,
+            orderNumber: order.orderId,
+            invoiceId: order.invoiceId,
+            originalInvoiceId: order.originalInvoiceId || order.invoiceId.split('_')[0], // Store original invoice ID
+            orderDate: new Date(order.orderDate.split('.').reverse().join('-')), // Convert DD.MM.YYYY to YYYY-MM-DD
+            hsnCode: order.hsnCode,
+            skus: order.skus.map(sku => ({
+              sku: sku.name,
+              color: sku.color,
+              size: sku.size || 'Free Size',
+              quantity: sku.quantity || 1,
+              price: sku.price
+            })),
+            totalAmount: order.totalAmount,
             isRepeatCustomer: false, // Will be calculated later
             createdAt: new Date()
           });
@@ -143,9 +146,14 @@ app.get('/stats/repeat-customers', authMiddleware, async (req, res) => {
     { $match: { userId: req.user.id } },
     {
       $group: {
-        _id: { name: '$name', pincode: '$pincode', month: { $month: '$orderDate' }, year: { $year: '$orderDate' } },
+        _id: { 
+          name: '$customerName', 
+          pincode: '$pincode', 
+          month: { $month: '$orderDate' }, 
+          year: { $year: '$orderDate' } 
+        },
         count: { $sum: 1 },
-        city: { $first: '$city' }
+        city: { $first: '$customerCity' }
       }
     },
     { $match: { count: { $gte: 3 } } },
@@ -165,7 +173,7 @@ app.get('/stats/repeat-customers', authMiddleware, async (req, res) => {
 app.get('/stats/cities', authMiddleware, async (req, res) => {
   const pipeline = [
     { $match: { userId: req.user.id } },
-    { $group: { _id: '$city', total: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
+    { $group: { _id: '$customerCity', total: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
     { $sort: { total: -1 } }
   ];
   const result = await Order.aggregate(pipeline);
@@ -180,13 +188,14 @@ app.get('/orders', authMiddleware, async (req, res) => {
     
     if (search) {
       match.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { sku: { $regex: search, $options: 'i' } }
+        { customerName: { $regex: search, $options: 'i' } },
+        { orderNumber: { $regex: search, $options: 'i' } },
+        { 'skus.sku': { $regex: search, $options: 'i' } }
       ];
     }
     
     if (city) {
-      match.city = city;
+      match.customerCity = city;
     }
     
     if (from && to) {
@@ -215,12 +224,27 @@ app.get('/stats/summary', authMiddleware, async (req, res) => {
         _id: null,
         totalRevenue: { $sum: '$totalAmount' },
         totalOrders: { $sum: 1 },
-        uniqueCustomers: { $addToSet: '$orderId' }
+        totalSkus: { $sum: { $size: '$skus' } },
+        uniqueCustomers: { $addToSet: '$customerName' }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        totalRevenue: 1,
+        totalOrders: 1,
+        totalSkus: 1,
+        uniqueCustomers: { $size: '$uniqueCustomers' }
       }
     }
   ];
   const result = await Order.aggregate(pipeline);
-  res.json(result[0] || {});
+  res.json(result[0] || {
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalSkus: 0,
+    uniqueCustomers: 0
+  });
 });
 
 app.listen(5002, () => {
