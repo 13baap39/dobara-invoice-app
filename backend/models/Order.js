@@ -31,4 +31,16 @@ const orderSchema = new mongoose.Schema({
 // Create a unique compound index on orderNumber and userId to ensure no duplicate orders
 orderSchema.index({ orderNumber: 1, userId: 1 }, { unique: true });
 
+// Add indexes for search performance
+orderSchema.index({ userId: 1, customerName: 1 });
+orderSchema.index({ userId: 1, customerCity: 1 });
+orderSchema.index({ userId: 1, orderDate: -1 });
+orderSchema.index({ userId: 1, totalAmount: 1 });
+orderSchema.index({ userId: 1, hsnCode: 1 });
+orderSchema.index({ userId: 1, 'skus.sku': 1 });
+
+// Compound indexes for common search combinations
+orderSchema.index({ userId: 1, orderDate: -1, totalAmount: -1 });
+orderSchema.index({ userId: 1, customerName: 1, orderDate: -1 });
+
 export default mongoose.model('Order', orderSchema, 'orders');

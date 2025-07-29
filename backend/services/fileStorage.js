@@ -155,9 +155,70 @@ export async function deleteFile(fileUrl) {
   }
 }
 
+/**
+ * Upload a file to storage and generate thumbnail
+ * @param {string} filePath - Local file path
+ * @param {string} originalName - Original filename
+ * @returns {Object} - Upload result with URLs
+ */
+export async function uploadFileToStorage(filePath, originalName) {
+  try {
+    if (STORAGE_TYPE === 'cloud') {
+      // Upload to Cloudinary
+      const result = await cloudinary.uploader.upload(filePath, {
+        folder: 'invoices',
+        resource_type: 'image',
+        public_id: `invoice_${Date.now()}`,
+        overwrite: true,
+      });
+
+      // Generate thumbnail (Cloudinary auto-generates transformations)
+      const thumbnailUrl = cloudinary.url(result.public_id, {
+        width: 200,
+        height: 200,
+        crop: 'fill',
+        format: 'jpg',
+        quality: 'auto'
+      });
+
+      return {
+        url: result.secure_url,
+        thumbnailUrl: thumbnailUrl,
+        publicId: result.public_id
+      };
+    } else {
+      // Local storage
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      const filename = `${Date.now()}-${originalName}`;
+      const targetPath = path.join(uploadsDir, filename);
+
+      // Ensure uploads directory exists
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Copy file to uploads directory
+      fs.copyFileSync(filePath, targetPath);
+
+      // Generate thumbnail
+      const thumbnailPath = await generatePdfThumbnail(targetPath);
+      
+      return {
+        url: `/uploads/${filename}`,
+        thumbnailUrl: thumbnailPath ? `/uploads/${path.basename(thumbnailPath)}` : null,
+        localPath: targetPath
+      };
+    }
+  } catch (error) {
+    console.error('Error uploading file to storage:', error);
+    throw error;
+  }
+}
+
 export default {
   uploadMiddleware,
   generatePdfThumbnail,
   getFileUrl,
   deleteFile,
+  uploadFileToStorage,
 };

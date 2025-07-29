@@ -26,15 +26,38 @@ import express from 'express';
 import mongoose from 'mongoose';
 import multer from 'multer';
 import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import Order from './models/Order.js';
 import authMiddleware from './middleware/authMiddleware.js';
 import authRoutes from './routes/auth.js';
 import invoiceRoutes from './routes/invoices.js';
+import searchRoutes from './routes/search.js';
+import batchRoutes from './routes/batch.js';
 import { parseBill } from './billParser.js';
+import { BatchProcessor } from './services/batchProcessor.js';
 
 const app = express();
-app.use(cors());
+const server = createServer(app);
+
+// Configure CORS for both Express and Socket.io
+const corsOptions = {
+  origin: ["http://localhost:5173", "http://localhost:3000"],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Initialize Socket.io
+const io = new Server(server, {
+  cors: corsOptions,
+  transports: ['websocket', 'polling']
+});
+
+// Initialize batch processor with Socket.io
+const batchProcessor = new BatchProcessor(io);
+app.set('batchProcessor', batchProcessor);
 
 // Serve uploads directory (outside project root)
 app.use('/uploads', express.static(path.resolve(__dirname, '../../uploads')));
@@ -59,6 +82,52 @@ app.use('/auth', authRoutes);
 
 // Invoice routes
 app.use('/api/invoices', invoiceRoutes);
+
+// Batch processing routes
+app.use('/api/invoices', batchRoutes);
+
+// Search routes
+app.use('/api/orders', searchRoutes);
+
+// Socket.io authentication middleware
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      return next(new Error('Authentication error'));
+    }
+
+    const jwt = await import('jsonwebtoken');
+    const decoded = jwt.default.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    socket.join(`user_${decoded.id}`);
+    
+    console.log(`🔌 User ${decoded.id} connected via Socket.io`);
+    next();
+  } catch (err) {
+    console.error('❌ Socket.io authentication error:', err);
+    next(new Error('Authentication error'));
+  }
+});
+
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log(`✅ Socket connected: ${socket.id} for user ${socket.userId}`);
+
+  socket.on('joinBatchRoom', (batchId) => {
+    socket.join(`batch_${batchId}`);
+    console.log(`👥 User ${socket.userId} joined batch room: ${batchId}`);
+  });
+
+  socket.on('leaveBatchRoom', (batchId) => {
+    socket.leave(`batch_${batchId}`);
+    console.log(`👋 User ${socket.userId} left batch room: ${batchId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`🔌 Socket disconnected: ${socket.id} for user ${socket.userId}`);
+  });
+});
 
 // Test endpoint to check auth
 app.get('/test-auth', authMiddleware, (req, res) => {
@@ -253,6 +322,10 @@ app.get('/stats/summary', authMiddleware, async (req, res) => {
   });
 });
 
-app.listen(5002, () => {
-  console.log('Backend server running on http://localhost:5002');
+// Start HTTP server with Socket.io
+const PORT = process.env.PORT || 5002;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🔌 Socket.io enabled for real-time updates`);
+  console.log(`📦 Batch processing service initialized`);
 });
