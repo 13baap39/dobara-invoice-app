@@ -23,6 +23,8 @@ const orderSchema = new mongoose.Schema({
   skus: [skuSchema],
   totalAmount: { type: Number, required: true },
   isRepeatCustomer: Boolean,
+  invoiceImageUrl: String, // URL to the stored invoice PDF
+  invoiceThumbnailUrl: String, // URL to the invoice thumbnail
   createdAt: { type: Date, default: Date.now }
 });
 

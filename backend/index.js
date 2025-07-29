@@ -29,6 +29,7 @@ import cors from 'cors';
 import Order from './models/Order.js';
 import authMiddleware from './middleware/authMiddleware.js';
 import authRoutes from './routes/auth.js';
+import invoiceRoutes from './routes/invoices.js';
 import { parseBill } from './billParser.js';
 
 const app = express();
@@ -55,6 +56,9 @@ app.get('/', (req, res) => {
 
 // Auth routes
 app.use('/auth', authRoutes);
+
+// Invoice routes
+app.use('/api/invoices', invoiceRoutes);
 
 // Test endpoint to check auth
 app.get('/test-auth', authMiddleware, (req, res) => {
